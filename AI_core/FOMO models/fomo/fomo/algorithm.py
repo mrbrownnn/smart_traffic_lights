@@ -1,0 +1,226 @@
+import numpy as np
+import pandas as pd
+
+import random
+#from pymoo.algorithms.base.genetic import GeneticAlgorithm
+from pymoo.operators.selection.tournament import compare, TournamentSelection
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.algorithms.moo.nsga2 import binary_tournament
+from fomo.utils import categorize
+from pymoo.core.survival import Survival
+from pymoo.core.selection import Selection
+from pymoo.operators.sampling.rnd import FloatRandomSampling
+from pymoo.operators.survival.rank_and_crowding import RankAndCrowding
+from pymoo.util.display.multi import MultiObjectiveOutput
+from pymoo.termination.default import DefaultMultiObjectiveTermination
+from pymoo.util.misc import has_feasible
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
+from pymoo.algorithms.base.genetic import GeneticAlgorithm
+def get_parent(pop):
+
+    if not hasattr(get_parent_WeightedCoinFlip, "_called"):
+        print("Default flex")
+        get_parent_WeightedCoinFlip._called = True
+    
+    fng = pop.get("fng")
+    fn = pop.get("fn")
+    G = np.arange(fng.shape[1])
+    S = np.arange(len(pop))
+    loss = []
+
+    while (len(G) > 0 and len(S) > 1):
+
+        g = random.choice(G)
+        loss = []
+        # REGION change: finetuning parameters
+        # change weight for WeightedCoinFlip.random.choice() from 0.5 to 0.35
+        # conditional: random must to increase FNR score
+        if (random.random() < 0.35):
+            loss = fng[:, g]
+        else:
+            loss = np.abs(fng[:, g] - fn)
+
+        L = min(loss) 
+        epsilon = np.median(np.abs(loss - np.median(loss)))
+        survivors = np.where(loss <= L + epsilon)
+        S = S[survivors]
+        fng = fng[survivors] 
+        fn = fn[survivors]
+        G = G[np.where(G != g)]
+            
+    S = S[:, None].astype(int, copy=False)     
+    return random.choice(S)
+                
+def get_parent_noCoinFlip(pop):
+
+    if not hasattr(get_parent_WeightedCoinFlip, "_called"):
+        print("Flex with no coin flip")
+        get_parent_WeightedCoinFlip._called = True
+
+    fng = pop.get("fng")
+    fng = np.tile(fng, 2)
+    fn = pop.get("fn")
+    G = np.arange(fng.shape[1])
+    S = np.arange(len(pop))
+    loss = []
+
+    while (len(G) > 0 and len(S) > 1):
+
+        g = random.choice(G)
+        loss = []
+        
+        if g < max(G)/2:
+            #look at accuracy
+            loss = fng[:, g]
+        else:
+            #look at fairness
+            loss = np.abs(fng[:, g] - fn)
+
+        L = min(loss) 
+        epsilon = np.median(np.abs(loss - np.median(loss)))
+        survivors = np.where(loss <= L + epsilon)
+        S = S[survivors]
+        fng = fng[survivors] 
+        fn = fn[survivors]
+        G = G[np.where(G != g)]
+
+            
+    S = S[:, None].astype(int, copy=False)     
+    return random.choice(S)
+
+
+def get_parent_WeightedCoinFlip(pop):
+
+    if not hasattr(get_parent_WeightedCoinFlip, "_called"):
+        print("Flex with weighted coin flip")
+        get_parent_WeightedCoinFlip._called = True
+
+    samples_fnr = pop.get("samples_fnr")
+    fng = pop.get("fng")
+    fn = pop.get("fn")
+    gp_lens = pop.get('gp_lens')
+    G = np.arange(fng.shape[1])
+    S = np.arange(len(pop))
+    loss = []
+    weight = random.random()
+
+    while (len(G) > 0 and len(S) > 1):
+
+        g = random.choice(G)
+        loss = []
+
+        if (random.random() > weight):
+            #look at fairness
+            loss = fng[:, g]
+            G = G[np.where(G != g)]
+        else:
+            #look at accuracy
+            num_rows, num_cols = np.shape(samples_fnr)
+            indices = np.random.choice(num_cols, size = int(gp_lens[0, g]), replace = False)
+            fnr_sum = np.sum(samples_fnr[:, indices], axis=1)
+            pos_count = np.sum(samples_fnr[:, indices].astype(bool), axis=1)
+            for i in range (len(pos_count)):
+                if pos_count[i]:
+                    loss.append(fnr_sum[i]/pos_count[i])
+                else:
+                    loss.append(0)
+
+
+        L = min(loss) 
+        epsilon = np.median(np.abs(loss - np.median(loss)))
+        survivors = np.where(loss <= L + epsilon)
+        S = S[survivors]
+        fng = fng[survivors] 
+        fn = fn[survivors]
+        samples_fnr = samples_fnr[survivors]
+        gp_lens = gp_lens[survivors]
+            
+    S = S[:, None].astype(int, copy=False)     
+    return random.choice(S)
+
+class FLEX(Selection):
+    
+    def __init__(self,
+                 **kwargs):
+
+        #self.X_protected_ = X_protected
+        #self.categories = categories
+        #self.group_losses = group_losses
+        super().__init__(**kwargs)
+     
+         
+    def _do(self, _, pop, n_select, n_parents=1, flag = 0, **kwargs):
+        parents = []
+        
+        for i in range(n_select * n_parents): 
+            #get pop_size parents
+            p = get_parent(pop)
+            parents.append(p)
+            
+        return np.reshape(parents, (n_select, n_parents))
+
+class LexSurvival(Survival):
+    def __init__(self) -> None:
+        super().__init__(filter_infeasible=False)
+
+    def _do(self, problem, pop, n_survive=None, **kwargs):
+        return pop[-n_survive:]
+
+
+class Lexicase_NSGA2(GeneticAlgorithm):
+# canbe finetuning
+    def __init__(self,
+                 pop_size=100,
+                 sampling=FloatRandomSampling(),
+                 selection=FLEX(),
+                 #fineturning crossover, para eta, prob
+                 #finetuning mutation eta
+                 crossover=SBX(eta=20, prob=0.9),
+                 mutation=PM(eta=15),
+                 survival=RankAndCrowding(),
+                 output=MultiObjectiveOutput(),
+                 **kwargs):
+        
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            output=output,
+            advance_after_initial_infill=True,
+            **kwargs)
+        
+        self.termination = DefaultMultiObjectiveTermination()
+        self.tournament_type = 'comp_by_dom_and_crowding'
+
+    def _set_optimum(self, **kwargs):
+        if not has_feasible(self.pop):
+            self.opt = self.pop[[np.argmin(self.pop.get("CV"))]]
+        else:
+            self.opt = self.pop[self.pop.get("rank") == 0]
+
+class Lexicase(GeneticAlgorithm):
+
+    def __init__(self,
+                 pop_size=100,
+                 sampling=FloatRandomSampling(),
+                 selection=FLEX(),
+                 crossover=SBX(eta=15, prob=0.9),
+                 mutation=PM(eta=20),
+                 survival=LexSurvival(),
+                 output=MultiObjectiveOutput(),
+                 **kwargs):
+        
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            output=output,
+            advance_after_initial_infill=True,
+            **kwargs)
