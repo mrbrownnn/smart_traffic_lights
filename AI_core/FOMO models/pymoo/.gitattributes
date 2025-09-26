@@ -1,3 +1,0 @@
-* linguist-detectable=false
-*.py linguist-detectable=true
-*.ipynb filter=remove-notebook-output
