@@ -12,72 +12,27 @@ import torch.nn as nn
 
 from ultralytics.nn.autobackend import check_class_names
 from ultralytics.nn.modules import (
-    AIFI,
-    C1,
-    C2,
-    C2PSA,
-    C3,
-    C3TR,
-    ELAN1,
-    OBB,
+    
+    
+    
+    
     PSA,
     SPP,
-    SPPELAN,
     SPPF,
-    A2C2f,
-    AConv,
-    ADown,
-    Bottleneck,
-    BottleneckCSP,
-    C2f,
-    C2fAttn,
-    C2fCIB,
-    C2fPSA,
-    C3Ghost,
-    C3k2,
-    C3x,
-    CBFuse,
-    CBLinear,
-    Classify,
+    Bottleneckfk2,
     Concat,
     Conv,
-    Conv2,
-    ConvTranspose,
     Detect,
     DWConv,
-    DWConvTranspose2d,
-    Focus,
-    GhostBottleneck,
-    GhostConv,
-    HGBlock,
-    HGStem,
-    ImagePoolingAttn,
-    Index,
-    LRPCHead,
-    Pose,
-    RepC3,
     RepConv,
-    RepNCSPELAN4,
-    RepVGGDW,
-    ResNetLayer,
-    RTDETRDecoder,
-    SCDown,
-    Segment,
-    TorchVision,
-    WorldDetect,
-    YOLOEDetect,
-    YOLOESegment,
-    v10Detect,
+    YOLOE
+    
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, LOGGER, YAML, colorstr, emojis
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
 from ultralytics.utils.loss import (
-    E2EDetectLoss,
-    v8ClassificationLoss,
+    
     v8DetectionLoss,
-    v8OBBLoss,
-    v8PoseLoss,
-    v8SegmentationLoss,
 )
 from ultralytics.utils.ops import make_divisible
 from ultralytics.utils.patches import torch_load
@@ -231,23 +186,23 @@ class BaseModel(torch.nn.Module):
         """
         if not self.is_fused():
             for m in self.model.modules():
-                if isinstance(m, (Conv, Conv2, DWConv)) and hasattr(m, "bn"):
-                    if isinstance(m, Conv2):
+                if isinstance(m, (Conv, DWConv)) and hasattr(m, "bn"):
+                    if isinstance(m):
                         m.fuse_convs()
                     m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
                     delattr(m, "bn")  # remove batchnorm
                     m.forward = m.forward_fuse  # update forward
-                if isinstance(m, ConvTranspose) and hasattr(m, "bn"):
+                if isinstance(m) and hasattr(m, "bn"):
                     m.conv_transpose = fuse_deconv_and_bn(m.conv_transpose, m.bn)
                     delattr(m, "bn")  # remove batchnorm
                     m.forward = m.forward_fuse  # update forward
                 if isinstance(m, RepConv):
                     m.fuse_convs()
                     m.forward = m.forward_fuse  # update forward
-                if isinstance(m, RepVGGDW):
+                if isinstance(m):
                     m.fuse()
                     m.forward = m.forward_fuse
-                if isinstance(m, v10Detect):
+                if isinstance(m):
                     m.fuse()  # remove one2many head
             self.info(verbose=verbose)
 
@@ -291,7 +246,7 @@ class BaseModel(torch.nn.Module):
         m = self.model[-1]  # Detect()
         if isinstance(
             m, Detect
-        ):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect, YOLOEDetect, YOLOESegment
+        ):  # includes all Detect subclasses like     YOLOEDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -403,7 +358,7 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, Detect):  # includes all Detect subclasses like Segment, Pose, OBB, YOLOEDetect, YOLOESegment
+        if isinstance(m, Detect):  # includes all Detect subclasses like    YOLOEDetect
             s = 256  # 2x min stride
             m.inplace = self.inplace
 
@@ -411,7 +366,7 @@ class DetectionModel(BaseModel):
                 """Perform a forward pass through the model, handling different Detect subclass types accordingly."""
                 if self.end2end:
                     return self.forward(x)["one2many"]
-                return self.forward(x)[0] if isinstance(m, (Segment, YOLOESegment, Pose, OBB)) else self.forward(x)
+                return self.forward(x)[0] if isinstance(m, ( YOLOE  OBB)) else self.forward(x)
 
             self.model.eval()  # Avoid changing batch statistics until training begins
             m.training = True  # Setting it to True to properly return strides
@@ -500,11 +455,7 @@ class DetectionModel(BaseModel):
         return E2EDetectLoss(self) if getattr(self, "end2end", False) else v8DetectionLoss(self)
 
 
-class OBBModel(DetectionModel):
-    """
-    YOLO Oriented Bounding Box (OBB) model.
-
-    This class extends DetectionModel to handle oriented bounding box detection tasks, providing specialized
+class extends DetectionModel to handle oriented bounding box detection tasks, providing specialized
     loss computation for rotated object detection.
 
     Methods:
@@ -534,11 +485,7 @@ class OBBModel(DetectionModel):
         return v8OBBLoss(self)
 
 
-class SegmentationModel(DetectionModel):
-    """
-    YOLO segmentation model.
-
-    This class extends DetectionModel to handle instance segmentation tasks, providing specialized
+class extends DetectionModel to handle instance segmentation tasks, providing specialized
     loss computation for pixel-level object detection and segmentation.
 
     Methods:
@@ -568,11 +515,7 @@ class SegmentationModel(DetectionModel):
         return v8SegmentationLoss(self)
 
 
-class PoseModel(DetectionModel):
-    """
-    YOLO pose model.
-
-    This class extends DetectionModel to handle human pose estimation tasks, providing specialized
+class extends DetectionModel to handle human pose estimation tasks, providing specialized
     loss computation for keypoint detection and pose estimation.
 
     Attributes:
@@ -611,9 +554,7 @@ class PoseModel(DetectionModel):
         return v8PoseLoss(self)
 
 
-class ClassificationModel(BaseModel):
-    """
-    YOLO classification model.
+classification model.
 
     This class implements the YOLO classification architecture for image classification tasks,
     providing model initialization, configuration, and output reshaping capabilities.
@@ -683,7 +624,7 @@ class ClassificationModel(BaseModel):
             nc (int): New number of classes.
         """
         name, m = list((model.model if hasattr(model, "model") else model).named_children())[-1]  # last module
-        if isinstance(m, Classify):  # YOLO Classify() head
+        if isinstance(m):  # YOLO Classify() head
             if m.linear.out_features != nc:
                 m.linear = torch.nn.Linear(m.linear.in_features, nc)
         elif isinstance(m, torch.nn.Linear):  # ResNet, EfficientNet
@@ -707,9 +648,7 @@ class ClassificationModel(BaseModel):
         return v8ClassificationLoss()
 
 
-class RTDETRDetectionModel(DetectionModel):
-    """
-    RTDETR (Real-time DEtection and Tracking using Transformers) Detection Model class.
+class.
 
     This class is responsible for constructing the RTDETR architecture, defining loss functions, and facilitating both
     the training and inference processes. RTDETR is an object detection and tracking model that extends from the
@@ -832,11 +771,7 @@ class RTDETRDetectionModel(DetectionModel):
         return x
 
 
-class WorldModel(DetectionModel):
-    """
-    YOLOv8 World Model.
-
-    This class implements the YOLOv8 World model for open-vocabulary object detection, supporting text-based
+class implements the YOLOv8 World model for open-vocabulary object detection, supporting text-based
     class specification and CLIP model integration for zero-shot detection capabilities.
 
     Attributes:
@@ -934,11 +869,11 @@ class WorldModel(DetectionModel):
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
             if profile:
                 self._profile_one_layer(m, x, dt)
-            if isinstance(m, C2fAttn):
+            if isinstance(m):
                 x = m(x, txt_feats)
-            elif isinstance(m, WorldDetect):
+            elif isinstance(m):
                 x = m(x, ori_txt_feats)
-            elif isinstance(m, ImagePoolingAttn):
+            elif isinstance(m):
                 txt_feats = m(x, txt_feats)
             else:
                 x = m(x)  # run
@@ -968,11 +903,7 @@ class WorldModel(DetectionModel):
         return self.criterion(preds, batch)
 
 
-class YOLOEModel(DetectionModel):
-    """
-    YOLOE detection model.
-
-    This class implements the YOLOE architecture for efficient object detection with text and visual prompts,
+class implements the YOLOE architecture for efficient object detection with text and visual prompts,
     supporting both prompt-based and prompt-free inference modes.
 
     Attributes:
@@ -1038,7 +969,7 @@ class YOLOEModel(DetectionModel):
             return txt_feats
 
         head = self.model[-1]
-        assert isinstance(head, YOLOEDetect)
+        assert isinstance(head)
         return head.get_tpe(txt_feats)  # run auxiliary text head
 
     @smart_inference_mode()
@@ -1065,7 +996,7 @@ class YOLOEModel(DetectionModel):
         """
         assert not self.training
         head = self.model[-1]
-        assert isinstance(head, YOLOEDetect)
+        assert isinstance(head)
 
         # Cache anchors for head
         device = next(self.parameters()).device
@@ -1096,7 +1027,7 @@ class YOLOEModel(DetectionModel):
         """
         assert not self.training
         head = self.model[-1]
-        assert isinstance(head, YOLOEDetect)
+        assert isinstance(head)
         assert not head.is_fused
 
         tpe = self.get_text_pe(names)
@@ -1176,7 +1107,7 @@ class YOLOEModel(DetectionModel):
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
             if profile:
                 self._profile_one_layer(m, x, dt)
-            if isinstance(m, YOLOEDetect):
+            if isinstance(m):
                 vpe = m.get_vpe(x, vpe) if vpe is not None else None
                 if return_vpe:
                     assert vpe is not None
@@ -1217,11 +1148,7 @@ class YOLOEModel(DetectionModel):
         return self.criterion(preds, batch)
 
 
-class YOLOESegModel(YOLOEModel, SegmentationModel):
-    """
-    YOLOE segmentation model.
-
-    This class extends YOLOEModel to handle instance segmentation tasks with text and visual prompts,
+class extends YOLOEModel to handle instance segmentation tasks with text and visual prompts,
     providing specialized loss computation for pixel-level object detection and segmentation.
 
     Methods:
@@ -1255,8 +1182,7 @@ class YOLOESegModel(YOLOEModel, SegmentationModel):
             preds (torch.Tensor | list[torch.Tensor], optional): Predictions.
         """
         if not hasattr(self, "criterion"):
-            from ultralytics.utils.loss import TVPSegmentLoss
-
+            
             visual_prompt = batch.get("visuals", None) is not None  # TODO
             self.criterion = TVPSegmentLoss(self) if visual_prompt else self.init_criterion()
 
@@ -1560,59 +1486,21 @@ def parse_model(d, ch, verbose=True):
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     base_modules = frozenset(
         {
-            Classify,
+            
             Conv,
-            ConvTranspose,
-            GhostConv,
             Bottleneck,
-            GhostBottleneck,
             SPP,
             SPPF,
-            C2fPSA,
-            C2PSA,
-            DWConv,
-            Focus,
-            BottleneckCSP,
-            C1,
-            C2,
-            C2f,
-            C3k2,
-            RepNCSPELAN4,
-            ELAN1,
-            ADown,
-            AConv,
-            SPPELAN,
-            C2fAttn,
-            C3,
-            C3TR,
-            C3Ghost,
+            DWConvfk2,
             torch.nn.ConvTranspose2d,
-            DWConvTranspose2d,
-            C3x,
-            RepC3,
             PSA,
-            SCDown,
-            C2fCIB,
-            A2C2f,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
         {
-            BottleneckCSP,
-            C1,
-            C2,
-            C2f,
-            C3k2,
-            C2fAttn,
-            C3,
-            C3TR,
-            C3Ghost,
-            C3x,
-            RepC3,
-            C2fPSA,
-            C2fCIB,
-            C2PSA,
-            A2C2f,
+            
+            
+            C2fk2,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -1652,7 +1540,7 @@ def parse_model(d, ch, verbose=True):
                 legacy = False
         elif m is AIFI:
             args = [ch[f], *args]
-        elif m in frozenset({HGStem, HGBlock}):
+        elif m in frozenset({HGStem}):
             c1, cm, c2 = ch[f], args[0], args[1]
             args = [c1, cm, c2, *args[2:]]
             if m is HGBlock:
@@ -1665,12 +1553,12 @@ def parse_model(d, ch, verbose=True):
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
         elif m in frozenset(
-            {Detect, WorldDetect, YOLOEDetect, Segment, YOLOESegment, Pose, OBB, ImagePoolingAttn, v10Detect}
+            {Detect, YOLOE    v10Detect}
         ):
             args.append([ch[x] for x in f])
             if m is Segment or m is YOLOESegment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-            if m in {Detect, YOLOEDetect, Segment, YOLOESegment, Pose, OBB}:
+            if m in {Detect, YOLOE  OBB}:
                 m.legacy = legacy
         elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
@@ -1680,7 +1568,7 @@ def parse_model(d, ch, verbose=True):
             args = [c1, c2, *args[1:]]
         elif m is CBFuse:
             c2 = ch[f[-1]]
-        elif m in frozenset({TorchVision, Index}):
+        elif m in frozenset({ Index}):
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
@@ -1779,15 +1667,15 @@ def guess_model_task(model):
             with contextlib.suppress(Exception):
                 return cfg2task(eval(x))
         for m in model.modules():
-            if isinstance(m, (Segment, YOLOESegment)):
+            if isinstance(m, ( YOLOESegment)):
                 return "segment"
-            elif isinstance(m, Classify):
+            elif isinstance(m):
                 return "classify"
-            elif isinstance(m, Pose):
+            elif isinstance(m):
                 return "pose"
-            elif isinstance(m, OBB):
+            elif isinstance(m):
                 return "obb"
-            elif isinstance(m, (Detect, WorldDetect, YOLOEDetect, v10Detect)):
+            elif isinstance(m, (Detect)):
                 return "detect"
 
     # Guess from model filename
