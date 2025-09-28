@@ -52,27 +52,27 @@ SOLUTION_MAP = {
 
 # Define valid tasks and modes
 MODES = frozenset({"train", "val", "predict", "export", "track", "benchmark"})
-TASKS = frozenset({"detect", "segment", "classify", "pose", "obb"})
+TASKS = frozenset({"detect", })
 TASK2DATA = {
     "detect": "coco8.yaml",
-    "segment": "coco8-seg.yaml",
-    "classify": "imagenet10",
-    "pose": "coco8-pose.yaml",
-    "obb": "dota8.yaml",
+    : "coco8-seg.yaml",
+    : "imagenet10",
+    : "coco8-pose.yaml",
+    : "dota8.yaml",
 }
 TASK2MODEL = {
     "detect": "yolo11n.pt",
-    "segment": "yolo11n-seg.pt",
-    "classify": "yolo11n-cls.pt",
-    "pose": "yolo11n-pose.pt",
-    "obb": "yolo11n-obb.pt",
+    : "yolo11n-seg.pt",
+    : "yolo11n-cls.pt",
+    : "yolo11n-pose.pt",
+    : "yolo11n-obb.pt",
 }
 TASK2METRIC = {
     "detect": "metrics/mAP50-95(B)",
-    "segment": "metrics/mAP50-95(M)",
-    "classify": "metrics/accuracy_top1",
-    "pose": "metrics/mAP50-95(P)",
-    "obb": "metrics/mAP50-95(B)",
+    : "metrics/mAP50-95(M)",
+    : "metrics/accuracy_top1",
+    : "metrics/mAP50-95(P)",
+    : "metrics/mAP50-95(B)",
 }
 
 ARGV = sys.argv or ["", ""]  # sometimes sys.argv = []
@@ -974,7 +974,7 @@ def entrypoint(debug: str = "") -> None:
     # Mode
     if mode in {"predict", "track"} and "source" not in overrides:
         overrides["source"] = (
-            "https://ultralytics.com/images/boats.jpg" if task == "obb" else DEFAULT_CFG.source or ASSETS
+            "https://ultralytics.com/images/boats.jpg" if task ==  else DEFAULT_CFG.source or ASSETS
         )
         LOGGER.warning(f"'source' argument is missing. Using default 'source={overrides['source']}'.")
     elif mode in {"train", "val"}:
