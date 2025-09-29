@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from ultralytics.nn.modules import Conv  # reuse activation từ Ultralytics
-# định nghĩa 2 module mới, DWConv thay cho Conv, GhostModule cho C2f
+# identify 2 new module: DWConv and GhostModule
 class DWConv(nn.Module):
-    """Depthwise Convolution thay cho Conv tiêu chuẩn."""
+    """Depthwise Convolution replace Conv standard"""
     def __init__(self, c1, c2, k=3, s=1, act=True):
         super().__init__()
         self.dwconv = nn.Conv2d(c1, c1, kernel_size=k, stride=s, padding=k//2, groups=c1, bias=False)
@@ -44,7 +44,7 @@ class GhostModule(nn.Module):
         return out[:, :self.out_channels, :, :]
 
 class GhostC2f(nn.Module):
-    """Block thay thế C2f, sử dụng GhostModule thay vì Bottleneck."""
+    """Block replace C2f, use GhostModule instead Bottleneck."""
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
         super().__init__()
         self.c = int(c2 * e)  # Hidden channels
