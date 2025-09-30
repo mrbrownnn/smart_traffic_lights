@@ -9,7 +9,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-vh-100 bg-light">
-        <main>{children}</main>
+        {children}
       </body>
     </html>
   );
