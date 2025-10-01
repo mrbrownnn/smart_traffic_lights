@@ -7,10 +7,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
 from .transformer import TransformerBlock
+
 # explain core parameters of YOLOv8n models
 # including 3 function: Backbone, Neck, Head
 """
@@ -38,8 +38,6 @@ Output Strides: Detection scales (8, 16, 32 pixels per grid cell, corresponding 
 """
 __all__ = (
     "DFL",
-    "HGBlock",
-    "HGStem",
     "SPP",
     "SPPF",
     "C1",
@@ -67,16 +65,81 @@ __all__ = (
     "CBFuse",
     "CBLinear",
     "C3k2",
-    "C2fPSA",
     "C2PSA",
-    "RepVGGDW",
-    "CIB",
-    "C2fCIB",
     "Attention",
     "PSA",
-    "SCDown",
     "TorchVision",
+    "DWConv",
+    "GhostModule",
+    "GhostC2f"
+
 )
+
+
+# identify 2 new module: DWConv, GhostC2f GhostModule
+class DWConv(nn.Module):
+    """Depthwise Convolution replace Conv standard"""
+
+    def __init__(self, c1, c2, k=3, s=1, act=True):
+        super().__init__()
+        self.dwconv = nn.Conv2d(c1, c1, kernel_size=k, stride=s, padding=k // 2, groups=c1, bias=False)
+        self.pointwise = nn.Conv2d(c1, c2, kernel_size=1, stride=1, padding=0,
+                                   bias=False)  # Pointwise Conv để đổi số channel
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.SiLU() if act else nn.Identity()
+
+    def forward(self, x):
+        x = self.dwconv(x)
+        x = self.pointwise(x)
+        x = self.bn(x)
+        x = self.act(x)
+        return x
+
+
+class GhostModule(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, ratio=2, dw_size=3, stride=1, act=True):
+        super().__init__()
+        self.out_channels = out_channels
+        init_channels = out_channels // ratio
+        new_channels = out_channels - init_channels
+
+        self.primary_conv = nn.Sequential(
+            nn.Conv2d(in_channels, init_channels, kernel_size, stride, kernel_size // 2, bias=False),
+            nn.BatchNorm2d(init_channels),
+            nn.SiLU() if act else nn.Identity()
+        )
+
+        self.cheap_operation = nn.Sequential(
+            nn.Conv2d(init_channels, new_channels, dw_size, 1, dw_size // 2, groups=init_channels, bias=False),
+            nn.BatchNorm2d(new_channels),
+            nn.SiLU() if act else nn.Identity()
+        )
+
+    def forward(self, x):
+        x1 = self.primary_conv(x)
+        x2 = self.cheap_operation(x1)
+        out = torch.cat([x1, x2], dim=1)
+        return out[:, :self.out_channels, :, :]
+
+
+class GhostC2f(nn.Module):
+    """Block replace C2f, use GhostModule instead Bottleneck."""
+
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
+        super().__init__()
+        self.c = int(c2 * e)  # Hidden channels
+        self.cv1 = GhostModule(c1, 2 * self.c, 1)  # Thay Conv bằng GhostModule
+        self.cv2 = GhostModule((2 + n) * self.c, c2, 1)  # Thay Conv cuối
+        self.m = nn.ModuleList(GhostModule(self.c, self.c) for _ in range(n))  # Thay Bottleneck bằng GhostModule
+        self.shortcut = shortcut
+
+    def forward(self, x):
+        y = list(self.cv1(x).split((self.c, self.c), 1))
+        y.extend(m(y[-1]) for m in self.m)
+        out = self.cv2(torch.cat(y, 1))
+        if self.shortcut:
+            out = out + x
+        return out
 
 
 class DFL(nn.Module):
@@ -127,90 +190,6 @@ class Proto(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through layers using an upsampled input image."""
         return self.cv3(self.cv2(self.upsample(self.cv1(x))))
-
-
-class HGStem(nn.Module):
-    """
-    StemBlock of PPHGNetV2 with 5 convolutions and one maxpool2d.
-
-    https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
-    """
-
-    def __init__(self, c1: int, cm: int, c2: int):
-        """
-        Initialize the StemBlock of PPHGNetV2.
-
-        Args:
-            c1 (int): Input channels.
-            cm (int): Middle channels.
-            c2 (int): Output channels.
-        """
-        super().__init__()
-        self.stem1 = Conv(c1, cm, 3, 2, act=nn.ReLU())
-        self.stem2a = Conv(cm, cm // 2, 2, 1, 0, act=nn.ReLU())
-        self.stem2b = Conv(cm // 2, cm, 2, 1, 0, act=nn.ReLU())
-        self.stem3 = Conv(cm * 2, cm, 3, 2, act=nn.ReLU())
-        self.stem4 = Conv(cm, c2, 1, 1, act=nn.ReLU())
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0, ceil_mode=True)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass of a PPHGNetV2 backbone layer."""
-        x = self.stem1(x)
-        x = F.pad(x, [0, 1, 0, 1])
-        x2 = self.stem2a(x)
-        x2 = F.pad(x2, [0, 1, 0, 1])
-        x2 = self.stem2b(x2)
-        x1 = self.pool(x)
-        x = torch.cat([x1, x2], dim=1)
-        x = self.stem3(x)
-        x = self.stem4(x)
-        return x
-
-
-class HGBlock(nn.Module):
-    """
-    HG_Block of PPHGNetV2 with 2 convolutions and LightConv.
-
-    https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
-    """
-
-    def __init__(
-        self,
-        c1: int,
-        cm: int,
-        c2: int,
-        k: int = 3,
-        n: int = 6,
-        lightconv: bool = False,
-        shortcut: bool = False,
-        act: nn.Module = nn.ReLU(),
-    ):
-        """
-        Initialize HGBlock with specified parameters.
-
-        Args:
-            c1 (int): Input channels.
-            cm (int): Middle channels.
-            c2 (int): Output channels.
-            k (int): Kernel size.
-            n (int): Number of LightConv or Conv blocks.
-            lightconv (bool): Whether to use LightConv.
-            shortcut (bool): Whether to use shortcut connection.
-            act (nn.Module): Activation function.
-        """
-        super().__init__()
-        block = LightConv if lightconv else Conv
-        self.m = nn.ModuleList(block(c1 if i == 0 else cm, cm, k=k, act=act) for i in range(n))
-        self.sc = Conv(c1 + n * cm, c2 // 2, 1, 1, act=act)  # squeeze conv
-        self.ec = Conv(c2 // 2, c2, 1, 1, act=act)  # excitation conv
-        self.add = shortcut and c1 == c2
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass of a PPHGNetV2 backbone layer."""
-        y = [x]
-        y.extend(m(y[-1]) for m in self.m)
-        y = self.ec(self.sc(torch.cat(y, 1)))
-        return y + x if self.add else y
 
 
 class SPP(nn.Module):
@@ -495,7 +474,7 @@ class Bottleneck(nn.Module):
     """Standard bottleneck."""
 
     def __init__(
-        self, c1: int, c2: int, shortcut: bool = True, g: int = 1, k: tuple[int, int] = (3, 3), e: float = 0.5
+            self, c1: int, c2: int, shortcut: bool = True, g: int = 1, k: tuple[int, int] = (3, 3), e: float = 0.5
     ):
         """
         Initialize a standard bottleneck module.
@@ -652,7 +631,7 @@ class MaxSigmoidAttnBlock(nn.Module):
 
         aw = torch.einsum("bmchw,bnmc->bmhwn", embed, guide)
         aw = aw.max(dim=-1)[0]
-        aw = aw / (self.hc**0.5)
+        aw = aw / (self.hc ** 0.5)
         aw = aw + self.bias[None, :, None, None]
         aw = aw.sigmoid() * self.scale
 
@@ -666,16 +645,16 @@ class C2fAttn(nn.Module):
     """C2f module with an additional attn module."""
 
     def __init__(
-        self,
-        c1: int,
-        c2: int,
-        n: int = 1,
-        ec: int = 128,
-        nh: int = 1,
-        gc: int = 512,
-        shortcut: bool = False,
-        g: int = 1,
-        e: float = 0.5,
+            self,
+            c1: int,
+            c2: int,
+            n: int = 1,
+            ec: int = 128,
+            nh: int = 1,
+            gc: int = 512,
+            shortcut: bool = False,
+            g: int = 1,
+            e: float = 0.5,
     ):
         """
         Initialize C2f module with attention mechanism.
@@ -735,7 +714,7 @@ class ImagePoolingAttn(nn.Module):
     """ImagePoolingAttn: Enhance the text embeddings with image-aware information."""
 
     def __init__(
-        self, ec: int = 256, ch: tuple[int, ...] = (), ct: int = 512, nh: int = 8, k: int = 3, scale: bool = False
+            self, ec: int = 256, ch: tuple[int, ...] = (), ct: int = 512, nh: int = 8, k: int = 3, scale: bool = False
     ):
         """
         Initialize ImagePoolingAttn module.
@@ -777,7 +756,7 @@ class ImagePoolingAttn(nn.Module):
         """
         bs = x[0].shape[0]
         assert len(x) == self.nf
-        num_patches = self.k**2
+        num_patches = self.k ** 2
         x = [pool(proj(x)).view(bs, -1, num_patches) for (x, proj, pool) in zip(x, self.projections, self.im_pools)]
         x = torch.cat(x, dim=-1).transpose(1, 2)
         q = self.query(text)
@@ -790,7 +769,7 @@ class ImagePoolingAttn(nn.Module):
         v = v.reshape(bs, -1, self.nh, self.hc)
 
         aw = torch.einsum("bnmc,bkmc->bmnk", q, k)
-        aw = aw / (self.hc**0.5)
+        aw = aw / (self.hc ** 0.5)
         aw = F.softmax(aw, dim=-1)
 
         x = torch.einsum("bmnk,bkmc->bnmc", aw, v)
@@ -880,7 +859,7 @@ class RepBottleneck(Bottleneck):
     """Rep bottleneck."""
 
     def __init__(
-        self, c1: int, c2: int, shortcut: bool = True, g: int = 1, k: tuple[int, int] = (3, 3), e: float = 0.5
+            self, c1: int, c2: int, shortcut: bool = True, g: int = 1, k: tuple[int, int] = (3, 3), e: float = 0.5
     ):
         """
         Initialize RepBottleneck.
@@ -1132,7 +1111,7 @@ class C3k2(C2f):
     """Faster Implementation of CSP Bottleneck with 2 convolutions."""
 
     def __init__(
-        self, c1: int, c2: int, n: int = 1, c3k: bool = False, e: float = 0.5, g: int = 1, shortcut: bool = True
+            self, c1: int, c2: int, n: int = 1, c3k: bool = False, e: float = 0.5, g: int = 1, shortcut: bool = True
     ):
         """
         Initialize C3k2 module.
@@ -1173,155 +1152,6 @@ class C3k(C3):
         # self.m = nn.Sequential(*(RepBottleneck(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
         self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
 
-
-class RepVGGDW(torch.nn.Module):
-    """RepVGGDW is a class that represents a depth wise separable convolutional block in RepVGG architecture."""
-
-    def __init__(self, ed: int) -> None:
-        """
-        Initialize RepVGGDW module.
-
-        Args:
-            ed (int): Input and output channels.
-        """
-        super().__init__()
-        self.conv = Conv(ed, ed, 7, 1, 3, g=ed, act=False)
-        self.conv1 = Conv(ed, ed, 3, 1, 1, g=ed, act=False)
-        self.dim = ed
-        self.act = nn.SiLU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Perform a forward pass of the RepVGGDW block.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            (torch.Tensor): Output tensor after applying the depth wise separable convolution.
-        """
-        return self.act(self.conv(x) + self.conv1(x))
-
-    def forward_fuse(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Perform a forward pass of the RepVGGDW block without fusing the convolutions.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            (torch.Tensor): Output tensor after applying the depth wise separable convolution.
-        """
-        return self.act(self.conv(x))
-
-    @torch.no_grad()
-    def fuse(self):
-        """
-        Fuse the convolutional layers in the RepVGGDW block.
-
-        This method fuses the convolutional layers and updates the weights and biases accordingly.
-        """
-        conv = fuse_conv_and_bn(self.conv.conv, self.conv.bn)
-        conv1 = fuse_conv_and_bn(self.conv1.conv, self.conv1.bn)
-
-        conv_w = conv.weight
-        conv_b = conv.bias
-        conv1_w = conv1.weight
-        conv1_b = conv1.bias
-
-        conv1_w = torch.nn.functional.pad(conv1_w, [2, 2, 2, 2])
-
-        final_conv_w = conv_w + conv1_w
-        final_conv_b = conv_b + conv1_b
-
-        conv.weight.data.copy_(final_conv_w)
-        conv.bias.data.copy_(final_conv_b)
-
-        self.conv = conv
-        del self.conv1
-
-
-class CIB(nn.Module):
-    """
-    Conditional Identity Block (CIB) module.
-
-    Args:
-        c1 (int): Number of input channels.
-        c2 (int): Number of output channels.
-        shortcut (bool, optional): Whether to add a shortcut connection. Defaults to True.
-        e (float, optional): Scaling factor for the hidden channels. Defaults to 0.5.
-        lk (bool, optional): Whether to use RepVGGDW for the third convolutional layer. Defaults to False.
-    """
-
-    def __init__(self, c1: int, c2: int, shortcut: bool = True, e: float = 0.5, lk: bool = False):
-        """
-        Initialize the CIB module.
-
-        Args:
-            c1 (int): Input channels.
-            c2 (int): Output channels.
-            shortcut (bool): Whether to use shortcut connection.
-            e (float): Expansion ratio.
-            lk (bool): Whether to use RepVGGDW.
-        """
-        super().__init__()
-        c_ = int(c2 * e)  # hidden channels
-        self.cv1 = nn.Sequential(
-            Conv(c1, c1, 3, g=c1),
-            Conv(c1, 2 * c_, 1),
-            RepVGGDW(2 * c_) if lk else Conv(2 * c_, 2 * c_, 3, g=2 * c_),
-            Conv(2 * c_, c2, 1),
-            Conv(c2, c2, 3, g=c2),
-        )
-
-        self.add = shortcut and c1 == c2
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the CIB module.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            (torch.Tensor): Output tensor.
-        """
-        return x + self.cv1(x) if self.add else self.cv1(x)
-
-
-class C2fCIB(C2f):
-    """
-    C2fCIB class represents a convolutional block with C2f and CIB modules.
-
-    Args:
-        c1 (int): Number of input channels.
-        c2 (int): Number of output channels.
-        n (int, optional): Number of CIB modules to stack. Defaults to 1.
-        shortcut (bool, optional): Whether to use shortcut connection. Defaults to False.
-        lk (bool, optional): Whether to use local key connection. Defaults to False.
-        g (int, optional): Number of groups for grouped convolution. Defaults to 1.
-        e (float, optional): Expansion ratio for CIB modules. Defaults to 0.5.
-    """
-
-    def __init__(
-        self, c1: int, c2: int, n: int = 1, shortcut: bool = False, lk: bool = False, g: int = 1, e: float = 0.5
-    ):
-        """
-        Initialize C2fCIB module.
-
-        Args:
-            c1 (int): Input channels.
-            c2 (int): Output channels.
-            n (int): Number of CIB modules.
-            shortcut (bool): Whether to use shortcut connection.
-            lk (bool): Whether to use local key connection.
-            g (int): Groups for convolutions.
-            e (float): Expansion ratio.
-        """
-        super().__init__(c1, c2, n, shortcut, g, e)
-        self.m = nn.ModuleList(CIB(self.c, self.c, shortcut, e=1.0, lk=lk) for _ in range(n))
-
-
 class Attention(nn.Module):
     """
     Attention module that performs self-attention on the input tensor.
@@ -1354,7 +1184,7 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
         self.key_dim = int(self.head_dim * attn_ratio)
-        self.scale = self.key_dim**-0.5
+        self.scale = self.key_dim ** -0.5
         nh_kd = self.key_dim * num_heads
         h = dim + nh_kd * 2
         self.qkv = Conv(dim, h, 1, act=False)
@@ -1553,98 +1383,6 @@ class C2PSA(nn.Module):
         b = self.m(b)
         return self.cv2(torch.cat((a, b), 1))
 
-
-class C2fPSA(C2f):
-    """
-    C2fPSA module with enhanced feature extraction using PSA blocks.
-
-    This class extends the C2f module by incorporating PSA blocks for improved attention mechanisms and feature extraction.
-
-    Attributes:
-        c (int): Number of hidden channels.
-        cv1 (Conv): 1x1 convolution layer to reduce the number of input channels to 2*c.
-        cv2 (Conv): 1x1 convolution layer to reduce the number of output channels to c.
-        m (nn.ModuleList): List of PSA blocks for feature extraction.
-
-    Methods:
-        forward: Performs a forward pass through the C2fPSA module.
-        forward_split: Performs a forward pass using split() instead of chunk().
-
-    Examples:
-        >>> import torch
-        >>> from ultralytics.models.common import C2fPSA
-        >>> model = C2fPSA(c1=64, c2=64, n=3, e=0.5)
-        >>> x = torch.randn(1, 64, 128, 128)
-        >>> output = model(x)
-        >>> print(output.shape)
-    """
-
-    def __init__(self, c1: int, c2: int, n: int = 1, e: float = 0.5):
-        """
-        Initialize C2fPSA module.
-
-        Args:
-            c1 (int): Input channels.
-            c2 (int): Output channels.
-            n (int): Number of PSABlock modules.
-            e (float): Expansion ratio.
-        """
-        assert c1 == c2
-        super().__init__(c1, c2, n=n, e=e)
-        self.m = nn.ModuleList(PSABlock(self.c, attn_ratio=0.5, num_heads=self.c // 64) for _ in range(n))
-
-
-class SCDown(nn.Module):
-    """
-    SCDown module for downsampling with separable convolutions.
-
-    This module performs downsampling using a combination of pointwise and depthwise convolutions, which helps in
-    efficiently reducing the spatial dimensions of the input tensor while maintaining the channel information.
-
-    Attributes:
-        cv1 (Conv): Pointwise convolution layer that reduces the number of channels.
-        cv2 (Conv): Depthwise convolution layer that performs spatial downsampling.
-
-    Methods:
-        forward: Applies the SCDown module to the input tensor.
-
-    Examples:
-        >>> import torch
-        >>> from ultralytics import SCDown
-        >>> model = SCDown(c1=64, c2=128, k=3, s=2)
-        >>> x = torch.randn(1, 64, 128, 128)
-        >>> y = model(x)
-        >>> print(y.shape)
-        torch.Size([1, 128, 64, 64])
-    """
-
-    def __init__(self, c1: int, c2: int, k: int, s: int):
-        """
-        Initialize SCDown module.
-
-        Args:
-            c1 (int): Input channels.
-            c2 (int): Output channels.
-            k (int): Kernel size.
-            s (int): Stride.
-        """
-        super().__init__()
-        self.cv1 = Conv(c1, c2, 1, 1)
-        self.cv2 = Conv(c2, c2, k=k, s=s, g=c2, act=False)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Apply convolution and downsampling to the input tensor.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            (torch.Tensor): Downsampled output tensor.
-        """
-        return self.cv2(self.cv1(x))
-
-
 class TorchVision(nn.Module):
     """
     TorchVision module to allow loading any torchvision model.
@@ -1663,7 +1401,7 @@ class TorchVision(nn.Module):
     """
 
     def __init__(
-        self, model: str, weights: str = "DEFAULT", unwrap: bool = True, truncate: int = 2, split: bool = False
+            self, model: str, weights: str = "DEFAULT", unwrap: bool = True, truncate: int = 2, split: bool = False
     ):
         """
         Load the model and weights from torchvision.
@@ -1778,7 +1516,7 @@ class AAttn(nn.Module):
             .permute(0, 2, 3, 1)
             .split([self.head_dim, self.head_dim, self.head_dim], dim=2)
         )
-        attn = (q.transpose(-2, -1) @ k) * (self.head_dim**-0.5)
+        attn = (q.transpose(-2, -1) @ k) * (self.head_dim ** -0.5)
         attn = attn.softmax(dim=-1)
         x = v @ attn.transpose(-2, -1)
         x = x.permute(0, 3, 1, 2)
@@ -1889,17 +1627,17 @@ class A2C2f(nn.Module):
     """
 
     def __init__(
-        self,
-        c1: int,
-        c2: int,
-        n: int = 1,
-        a2: bool = True,
-        area: int = 1,
-        residual: bool = False,
-        mlp_ratio: float = 2.0,
-        e: float = 0.5,
-        g: int = 1,
-        shortcut: bool = True,
+            self,
+            c1: int,
+            c2: int,
+            n: int = 1,
+            a2: bool = True,
+            area: int = 1,
+            residual: bool = False,
+            mlp_ratio: float = 2.0,
+            e: float = 0.5,
+            g: int = 1,
+            shortcut: bool = True,
     ):
         """
         Initialize Area-Attention C2f module.
