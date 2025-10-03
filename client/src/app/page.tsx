@@ -9,6 +9,8 @@ import SettingsPage from './settings/page';
 import { mockCameras, mockTrafficLights, mockVehicleStats } from '@/data/mockData';
 import { CameraData } from '@/types/type';
 
+
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'overview' | 'monitor' | 'settings'>('overview');
   const [cameras, setCameras] = useState<CameraData[]>(mockCameras);
