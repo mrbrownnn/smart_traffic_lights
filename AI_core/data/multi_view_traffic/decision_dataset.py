@@ -1,17 +1,21 @@
 import os
 import shutil
 import random
+import zipapp
 
-
-# Base path: folder where this script is located & Source YOLO label folders
+# Base path: Location about this script is located & Source YOLO label folders
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.join(BASE_PATH, "converted_yolo")
 SOURCE_DIRS = {
-    "drone_labels": os.path.join(BASE_DIR, "drone_labels"),
-    "infrastructure_labels": os.path.join(BASE_DIR, "infrastructure_labels"),
+    "drone": {
+        "images": os.path.join(BASE_DIR, "drone_images"),
+        "labels": os.path.join(BASE_DIR, "drone_labels"),
+    },
+    "infrastructure": {
+        "images": os.path.join(BASE_DIR, "infrastructure_images"),
+        "labels": os.path.join(BASE_DIR, "infrastructure_labels"),
+    },
 }
-
-# Output folder for the split dataset
 OUTPUT_DIR = os.path.join(BASE_PATH, "split_yolo")
 
 train_ratio = 0.7  # 70% training
@@ -30,53 +34,55 @@ def prepare_output_folders():
 
     for split in ["train", "val"]:
         for sub in SOURCE_DIRS.keys():
-            os.makedirs(os.path.join(OUTPUT_DIR, split, "labels", sub), exist_ok=True)
+            for t in ["images", "labels"]:
+                os.makedirs(os.path.join(OUTPUT_DIR, split, t, f"{sub}_{t}"), exist_ok=True)
 
-
-def copy_files(files, split, subfolder):
+def copy_pair(label_file, split, sub):
     """
-    Copy label files into the corresponding train/val folder,
-    while keeping the subfolder (drone_labels / infrastructure_labels).
+    Copy label & image files if it exist
     """
-    for f in files:
-        filename = os.path.basename(f)
-        dst = os.path.join(OUTPUT_DIR, split, "labels", subfolder, filename)
-        shutil.copy2(f, dst)
+    label_dst = os.path.join(OUTPUT_DIR, split, "labels", f"{sub}_labels", os.path.basename(label_file))
+    shutil.copy2(label_file, label_dst)
+    image_name = os.path.splitext(os.path.basename(label_file))[0] + ".jpg"
+    image_src = os.path.join(SOURCE_DIRS[sub]["images"], image_name)
+    if os.path.exists(image_src):
+        image_dst = os.path.join(OUTPUT_DIR, split, "images", f"{sub}_images", image_name)
+        shutil.copy2(image_src, image_dst)
+    else:
+        print(f"[WARNING] Missing image for label: {label_file}")
 
 
 def main():
     prepare_output_folders()
-
     stats = {} 
 
-    for sub, src in SOURCE_DIRS.items():
-        if not os.path.isdir(src):
-            raise FileNotFoundError(f"Missing folder: {src}")
-        files = [os.path.join(src, f) for f in os.listdir(src) if f.endswith(".txt")]
-        random.shuffle(files)
+    for sub, paths in SOURCE_DIRS.items():
+        label_dir = paths["labels"]
+        label_files = [os.path.join(label_dir, f) for f in os.listdir(label_dir) if f.endswith(".txt")]
+        random.shuffle(label_files)
 
-        n_total = len(files)
+        n_total = len(label_files)
         n_train = round(n_total * train_ratio)
-        train_files = files[:n_train]
-        val_files = files[n_train:]  
+        train_files = label_files[:n_train]
+        val_files = label_files[n_train:]
 
-        copy_files(train_files, "train", sub)
-        copy_files(val_files, "val", sub)
+        for lf in train_files:
+            copy_pair(lf, "train", sub)
+        for lf in val_files:
+            copy_pair(lf, "val", sub)
 
         stats[sub] = {
             "total": n_total,
             "train": len(train_files),
             "val": len(val_files),
-            "train_ratio": len(train_files) / n_total if n_total > 0 else 0,
-            "val_ratio": len(val_files) / n_total if n_total > 0 else 0,
         }
-
     print("=== Dataset Split Statistics ===")
     for sub, s in stats.items():
         print(f"\n{sub}:")
         print(f"  Total : {s['total']}")
-        print(f"  Train : {s['train']} ({s['train_ratio']:.2%})")
-        print(f"  Val   : {s['val']} ({s['val_ratio']:.2%})")
+        print(f"  Train : {s['train']} ({s['train']/s['total']:.2%})")
+        print(f"  Val   : {s['val']} ({s['val']/s['total']:.2%})")
+
 
 
 if __name__ == "__main__":
