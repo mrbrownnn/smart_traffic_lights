@@ -1,0 +1,7 @@
+names:
+- car
+- motorcycle
+- bus
+- truck
+nc: 4
+test: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo\sample_500\images
