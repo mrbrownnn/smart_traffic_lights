@@ -1,8 +1,8 @@
 names:
-- car
-- motorcycle
-- bus
-- truck
+  0: car        # COCO id 2
+  1: motocycle        # COCO id 3
+  2: bus      # COCO id 6
+  3: truck  # COCO id 8
 nc: 4
 train: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo\train\images
 val: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo\val\images

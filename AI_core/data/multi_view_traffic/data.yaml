@@ -24,9 +24,9 @@ nc: 4
 # Class names (COCO → YOLO mapping)
 names:
   0: car        # COCO id 2
-  1: bus        # COCO id 3
-  2: truck      # COCO id 6
-  3: motorbike  # COCO id 8
+  1: motocycle        # COCO id 3
+  2: bus      # COCO id 6
+  3: truck  # COCO id 8
 
 # Optional metadata
 download: ""  # already prepared locally
