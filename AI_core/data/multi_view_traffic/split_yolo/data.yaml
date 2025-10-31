@@ -1,0 +1,8 @@
+names:
+- car
+- motorcycle
+- bus
+- truck
+nc: 4
+train: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo\train\images
+val: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo\val\images
