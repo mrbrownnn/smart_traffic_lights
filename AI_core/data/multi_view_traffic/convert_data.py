@@ -73,7 +73,7 @@ def convert(json_path, img_root, out_root, valid_ids):
     print(f"{json_path} done. Converted {converted}, skipped {skipped}")
 
 # Mapping COCO ids -> YOLO ids
-valid_ids = {2:0, 3:1, 5:2, 7:3}
+valid_ids = {2:0, 3:1, 6:2, 8:3}
 
 
 
