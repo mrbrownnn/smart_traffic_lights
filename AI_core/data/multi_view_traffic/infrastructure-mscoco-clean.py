@@ -17,7 +17,7 @@ valid_cat_ids = {c["id"] for c in valid_categories}
 clean_annotations = []
 
 for ann in tqdm(coco["annotations"]):
-    # Kiểm tra category
+    # Inspector category
     if ann["category_id"] not in valid_cat_ids:
         continue
     
@@ -26,7 +26,6 @@ for ann in tqdm(coco["annotations"]):
     if w <= 0 or h <= 0:
         continue
     
-    # Kiểm tra ảnh tồn tại
     if ann["image_id"] not in images:
         continue
     
@@ -34,7 +33,7 @@ for ann in tqdm(coco["annotations"]):
     if x + w > img_info["width"] or y + h > img_info["height"]:
         continue
     
-    # Giữ lại các trường COCO chuẩn
+    
     new_ann = {
         "id": ann["id"],
         "image_id": ann["image_id"],
@@ -46,7 +45,6 @@ for ann in tqdm(coco["annotations"]):
     }
     clean_annotations.append(new_ann)
 
-# Ghi file mới
 coco_clean = {
     "images": list(images.values()),
     "annotations": clean_annotations,
@@ -56,5 +54,5 @@ coco_clean = {
 with open(output_file, "w") as f:
     json.dump(coco_clean, f, indent=2)
 
-print(f"✅ Done! ")
-print(f"Annotations gốc: {len(coco['annotations'])} -> Sau khi clean: {len(clean_annotations)}")
+print(f"Done! ")
+print(f"Annotations original: {len(coco['annotations'])} -> After cleaning: {len(clean_annotations)}")

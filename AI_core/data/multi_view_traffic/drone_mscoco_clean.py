@@ -56,5 +56,5 @@ coco_clean = {
 with open(output_file, "w") as f:
     json.dump(coco_clean, f, indent=2)
 
-print(f"✅ Done! ")
+print(f"Done! ")
 print(f"Annotations gốc: {len(coco['annotations'])} -> Sau khi clean: {len(clean_annotations)}")
