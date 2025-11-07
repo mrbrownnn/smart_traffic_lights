@@ -1,0 +1,24 @@
+# Traffic Detection Dataset (converted from MSCOCO)
+# Author: Thanh Pham
+# Version: 2025-10-06
+# Description:
+#   Dataset split 70/30 into train/val
+#   Converted from MSCOCO via valid_ids = {2:0, 3:1, 6:2, 8:3}
+#   Structure:
+#       split_yolo/
+#           ├── train/images
+#           ├── train/labels
+#           ├── val/images
+#           └── val/labels
+
+# Root dataset path (Colab path)
+path: C:\Users\admin\Desktop\project_local_backup\AI_core\data\multi_view_traffic\split_yolo_v2
+train: train/images
+val: val/images
+nc: 4
+names:
+  0: bicycle
+  1: car
+  2: bus
+  3: lorry
+download: ''

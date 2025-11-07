@@ -30,7 +30,7 @@ SOURCE_FOLDERS = ["drone", "infrastructure"]
 
 TRAIN_RATIO = 0.7
 SAMPLE_SIZE = 500
-CLASS_NAMES = ["car", "motorcycle", "bus", "truck"]
+CLASS_NAMES = ["bicycle", "car", "bus", "lorry"]
 # ====================================================
 
 
@@ -61,7 +61,7 @@ def generate_yaml(yaml_path: Path, path_root: str, train_rel: str, val_rel: str)
 # Version: 2025-10-06
 # Description:
 #   Dataset split 70/30 into train/val
-#   Converted from MSCOCO via valid_ids = {{2:0, 3:1, 5:2, 7:3}}
+#   Converted from MSCOCO via valid_ids = {{2:0, 3:1, 6:2, 8:3}}
 #   Structure:
 #       split_yolo/
 #           ├── train/images
