@@ -1,2 +1,3 @@
 AI_core/teacher_knowledge_distillation_model-v11l/yolo11l_main_models/exported/*.pt
 AI_core/teacher_knowledge_distillation_model-v11l/yolo11l_main_models/exported/*.pt
+AI_core/teacher_knowledge_distillation_model-v11l/yolo11l_main_models/weights/*.pt
