@@ -1,0 +1,31 @@
+======================================================================
+ CONVERSION COMPLETED
+======================================================================
+Total files processed:     548
+Successfully converted:    548
+Total boxes converted:     21238
+Files with no valid boxes: 2
+
+📊 FILTERING STATISTICS:
+  Ignored boxes (score=0):  1410
+  Invalid dimensions:        0
+  Out of bounds:             0
+
+ CATEGORY DISTRIBUTION:
+   0 (unknown_0         ):   1378 [✗ FILTERED]
+   1 (pedestrian        ):   8844 [✗ FILTERED]
+   2 (people            ):   5125 [✗ FILTERED]
+   3 (bicycle           ):   1287 [✅ KEPT]
+   4 (car               ):  14064 [✅ KEPT]
+   5 (van               ):   1975 [✗ FILTERED]
+   6 (truck             ):    750 [✅ KEPT]
+   7 (tricycle          ):   1045 [✗ FILTERED]
+   8 (awning-tricycle   ):    532 [✗ FILTERED]
+   9 (bus               ):    251 [✅ KEPT]
+  10 (motor             ):   4886 [✅ KEPT]
+  11 (unknown_11        ):     32 [✗ FILTERED]
+
+ ISSUES:
+  Missing images:     0
+  Unreadable images:  0
+  Malformed lines:    0
