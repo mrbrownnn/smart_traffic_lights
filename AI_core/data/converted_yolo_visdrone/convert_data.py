@@ -3,7 +3,7 @@ Convert VisDrone2019-DET dataset annotations to YOLO format.
 (8 fields per line: x, y, w, h, score, category_id, truncation, occlusion)
 
 Author: Thanh Pham
-Version: 1.2 (2025-11-11) - Fixed 8-field format + class mapping + logs
+Version: 1.3 (2025-11-11) - Fixed annotations and format structure
 """
 
 import os
@@ -13,9 +13,9 @@ from pathlib import Path
 from collections import Counter
 
 # ========================= CONFIG =========================
-ANNOTATIONS_DIR = Path(r"E:\visdrone\VisDrone2019-DET-val\annotations")
-IMAGES_DIR = Path(r"E:\visdrone\VisDrone2019-DET-val\images")
-OUTPUT_DIR = Path(r"E:\visdrone\converted_yolo_visdrone\val")
+ANNOTATIONS_DIR = Path(r"E:\visdrone\VisDrone2019-DET-train\annotations")
+IMAGES_DIR = Path(r"E:\visdrone\VisDrone2019-DET-train\images")
+OUTPUT_DIR = Path(r"E:\visdrone\converted_yolo_visdrone\train")
 
 # Mapping: VisDrone -> YOLO (5 traffic-related classes)
 VALID_IDS = {

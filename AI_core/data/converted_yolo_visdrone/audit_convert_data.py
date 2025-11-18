@@ -25,6 +25,45 @@ ROOT_DIR = Path(r"/visdrone/converted_yolo_visdrone")
 SUBSETS = ["train", "val"]
 CLASS_NAMES = ["bicycle", "car", "truck", "bus", "motor"]
 NUM_CLASSES = len(CLASS_NAMES)
+
+
+# ==================== PROBLEMS ===============================
+"""
+- conflict mapping Visdrone label dataset
+- merge mapping:
+ + dataset1(multi-traffic-view): bicycle, car, bus. lorry with mapping 0,1,2,3
+ + dataset2(visdrone):bicycle, car, truck, bus, motorbike
+"""
+# ======================== FIX DATASET STRAGETIC=======================
+""""
+    sys mapping:
+       0: bicycle
+       1: car
+       2: truck
+       3: bus
+       4: motobike
+"""
+#========================= FIX UNFAIRNESS DATASET ========================
+"""
+    weight/ratio
+
+        Dataset1:
+        ratio {
+            bicycle: x 4.5
+            car: x 0.5
+            bus: x 5.6
+            lorry(mapping -> truck): x1.2
+        }
+
+        All dataset (total weight)
+        ratio {
+            bicycle: x 2.5-3
+            car: 70k instances
+            bus: x 4-5            truck: 1.5-2
+            motorbike: x 1.2-1.5
+        }
+
+"""
 # ==========================================
 
 

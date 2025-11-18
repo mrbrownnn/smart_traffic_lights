@@ -17,14 +17,18 @@ Files with no valid boxes: 157
    2 (people            ):  27059 [✗ FILTERED]
    3 (bicycle           ):  10480 [✅ KEPT]
    4 (car               ): 144867 [✅ KEPT]
+   5 (van               ):  24956 [✗ FILTERED]
    6 (truck             ):  12875 [✅ KEPT]
    7 (tricycle          ):   4812 [✗ FILTERED]
    8 (awning-tricycle   ):   3246 [✗ FILTERED]
    9 (bus               ):   5926 [✅ KEPT]
+  10 (motor             ):  29647 [✅ KEPT]
   11 (unknown_11        ):   1532 [✗ FILTERED]
 
  ISSUES:
   Missing images:     0
+  Unreadable images:  0
+  Malformed lines:    0
 
  Output saved to: E:\visdrone\converted_yolo_visdrone\train
 ======================================================================
