@@ -1,0 +1,97 @@
+======================================================================
+MTID + Motorbike Merger (FIXED IMAGE)
+======================================================================
+✓ Loaded 941 motorbike crops
+
+======================================================================
+Converting DRONE - TRAIN
+======================================================================
+
+[INFO] Total images in JSON: 3335
+[INFO] Total annotations in JSON: 50811
+
+[INFO] Sample filenames from JSON:
+  1. Drone/0/seq3-drone_0000001.jpg
+  2. Drone/0/seq3-drone_0000002.jpg
+  3. Drone/0/seq3-drone_0000003.jpg
+Converting drone train:   0%|                                             | 0/50811 [00:00<?, ?it/s][INFO] Building image index for: E:/multi_2/Drone
+[INFO] Found 25177 unique image files
+[INFO] Sample paths:
+  1. seq3-drone_0000001.jpg -> E:\multi_2\Drone\0\seq3-drone_0000001.jpg
+  2. seq3-drone_0000002.jpg -> E:\multi_2\Drone\0\seq3-drone_0000002.jpg
+  3. seq3-drone_0000003.jpg -> E:\multi_2\Drone\0\seq3-drone_0000003.jpg
+Converting drone train: 100%|████████████████████████████████| 50811/50811 [07:44<00:00, 109.40it/s]
+
+[DEBUG] Conversion breakdown:
+  Total annotations:         50811
+  ✓ Successfully converted:  50489
+  ✗ Wrong category:              0
+  ✗ No image info:               0
+  ✗ Unannotated frame:         320
+  ✗ Image not exist:             0
+  ✗ Image read fail:             0
+  ✗ Size mismatch:               0
+  ✗ Invalid bbox:                2
+
+ Converted 2957 images
+
+======================================================================
+Converting INFRASTRUCTURE - TRAIN
+======================================================================
+
+[INFO] Total images in JSON: 2441
+[INFO] Total annotations in JSON: 14488
+
+[INFO] Sample filenames from JSON:
+  1. Infrastructure/0/seq3-infra_0000001.jpg
+  2. Infrastructure/0/seq3-infra_0000002.jpg
+  3. Infrastructure/0/seq3-infra_0000003.jpg
+Converting infrastructure train:   0%|                                    | 0/14488 [00:00<?, ?it/s][INFO] Building image index for: E:/multi_2/Infrastructure
+[INFO] Found 24951 unique image files
+[INFO] Sample paths:
+  1. seq3-infra_0000001.jpg -> E:\multi_2\Infrastructure\0\seq3-infra_0000001.jpg
+  2. seq3-infra_0000002.jpg -> E:\multi_2\Infrastructure\0\seq3-infra_0000002.jpg
+  3. seq3-infra_0000003.jpg -> E:\multi_2\Infrastructure\0\seq3-infra_0000003.jpg
+Converting infrastructure train: 100%|███████████████████████| 14488/14488 [01:23<00:00, 172.77it/s]
+
+[DEBUG] Conversion breakdown:
+  Total annotations:         14488
+  ✓ Successfully converted:  14486
+  ✗ Wrong category:              0
+  ✗ No image info:               0
+  ✗ Unannotated frame:           0
+  ✗ Image not exist:             0
+  ✗ Image read fail:             0
+  ✗ Size mismatch:               0
+  ✗ Invalid bbox:                2
+
+ Converted 2439 images
+
+======================================================================
+Stratified train/val split
+======================================================================
+Drone: 2957 images
+Infrastructure: 2439 images
+ Moved 1080 images to val
+  Train: 4316
+  Val: 1080
+
+======================================================================
+Augmenting train set with motorbikes
+======================================================================
+Augment train set: 100%|████████████████████████████████████████| 4316/4316 [06:22<00:00, 11.28it/s]
+ Augmented 2183 images
+  Motors pasted: 3274
+  Rejected (overlap): 1
+
+Created data.yaml
+
+======================================================================
+SUMMARY
+======================================================================
+Converted: 64975
+Augmented: 2183
+Motors pasted: 3274
+Motors rejected (overlap): 1
+======================================================================
+PS E:\multi_2> 
