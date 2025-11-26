@@ -1,0 +1,25 @@
+# Activate venv_3_10
+source /home/pi/Desktop/Smart_TraficLight_Project/venv_3_10/bin/activate  (venv_3_10)
+
+# code public API Pi localhost --> Internet
+ngrok http 5000
+
+# code chạy ai bằng venv_3_10
+cd ~/Desktop/Smart_TraficLight_Project
+venv_3_10/bin/python AI_process.py
+
+# Bật broker mospuitto (MQTT)
+sudo systemctl enable mosquitto
+sudo systemctl start mosquitto
+
+###### API ######
+# Trạng thái đèn:
+https://sniffy-dramatizable-jagger.ngrok-free.dev/status
+# Điều chỉnh đèn: (nguyên lý: tăng số giây đèn xanh cụm dc chọn và tăng đèn đỏ cụm kia)
+https://sniffy-dramatizable-jagger.ngrok-free.dev/manual_adjust/<"số cụm">/<"số giây">
+# Xem camera trực tiếp:
+https://sniffy-dramatizable-jagger.ngrok-free.dev/camera
+# API reset đèn về thời gian ban đầu đồng thời tắt điều chỉnh đèn tự động bằng ai
+https://sniffy-dramatizable-jagger.ngrok-free.dev/manual_reset
+# API bật lại chức năng điều chỉnh đèn tự động
+https://sniffy-dramatizable-jagger.ngrok-free.dev/enable_ai
