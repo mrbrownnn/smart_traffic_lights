@@ -4,10 +4,13 @@ from picamera2 import Picamera2
 import threading
 
 class CameraModule:
-    def __init__(self, width=416, height=416, fps=15):
+    def __init__(self,IMGwidth =640, IMGHeight =640, fps =15):
+
+    #DEFAULT SETTINGS: 640 x640, 15fps
+
         self.picam2 = Picamera2()
-        self.width = width
-        self.height = height
+        self.width = IMGwidth
+        self.height = IMGHeight
         self.fps = fps
 
         video_config = self.picam2.create_video_configuration(main={"size": (self.width, self.height)})
@@ -17,6 +20,7 @@ class CameraModule:
 
         # Lock để đảm bảo thread-safe
         self.lock = threading.Lock()
+        self.latest_frame = None
 
     def get_frame(self):
     

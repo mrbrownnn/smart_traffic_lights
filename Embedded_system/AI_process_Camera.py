@@ -13,6 +13,12 @@ import os
 
 # -----------------------------
 # Bước 1: Cấu hình
+"""
+REVIEW CODE + REFACTOR:
+- Chỉnh các siêu tham số conf_threshold, IoU để tránh vẽ bbox với nhiều hình ảnh rỗng
+- Tùy chỉnh với detect_interval theo thời gian thực
+- Vẽ bbox kèm label cùng conf_threshold + IoU_threshold để debug
+"""
 # -----------------------------
 CONF_THRESHOLD = 0.08
 IOU_THRESHOLD = 0.45
@@ -57,6 +63,19 @@ def nms(boxes, scores, iou_threshold):
 
     return selected
 
+#debug: add IoU & Confident:
+def calc_iou(boxA, boxB):
+    x1 = max(boxA[0], boxB[0])
+    y1 = max(boxA[1], boxB[1])
+    x2 = min(boxA[2], boxB[2])
+    y2 = min(boxA[3], boxB[3])
+
+    inter = max(0, x2 - x1) * max(0, y2 - y1)
+    areaA = (boxA[2] - boxA[0]) * (boxA[3] - boxA[1])
+    areaB = (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
+    union = areaA + areaB - inter
+
+    return inter / (union + 1e-6)
 
 # -----------------------------
 # Bước 3: Load model
@@ -77,12 +96,14 @@ print("Model output:", output_details[0]["shape"])
 # -----------------------------
 # Bước 4: Load camera Pi V2
 # -----------------------------
+
+# fix: dataset format: 640 x640 pixels
 cap = cv2.VideoCapture(0)
 
 # ĐẶT FPS CHO CAMERA (tùy module)
 cap.set(cv2.CAP_PROP_FPS, 30)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
 
 if not cap.isOpened():
     print("Không mở được camera!")
@@ -188,16 +209,30 @@ while True:
     draw = ImageDraw.Draw(img)
     draw.line([(mid_x, 0), (mid_x, orig_h)], fill="blue", width=3)
 
-    for i in keep:
-        x1, y1, x2, y2 = boxes_all[i]
-        center = (x1 + x2) / 2
+    for idx in keep:
+        x1, y1, x2, y2 = boxes_all[idx]
+        score = float(scores_all[idx])
+        cls_id = int(class_all[idx])
 
+        center = (x1 + x2) / 2
         if center < mid_x:
             left += 1
         else:
             right += 1
 
+        # Debug IOU (so với bbox đầu tiên trong NMS)
+        iou_debug = calc_iou(boxes_all[keep[0]], boxes_all[idx]) if len(keep) > 0 else 0
+
+        # Bbox
         draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
+
+        # Label text
+        label = f"{CLASS_NAMES[cls_id]} {score:.2f} IOU:{iou_debug:.2f}"
+        text_w, text_h = draw.textsize(label)
+
+        # Label background
+        draw.rectangle([x1, y1 - text_h - 4, x1 + text_w + 4, y1], fill="red")
+        draw.text((x1 + 2, y1 - text_h - 2), label, fill="white")
 
     print(f"LEFT = {left}  |  RIGHT = {right}")
 
