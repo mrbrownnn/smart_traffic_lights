@@ -75,4 +75,4 @@ if fps_list:
     print(f"FPS thấp nhất : {min(fps_list):.2f}")
     print(f"Tổng số frame đã đo: {count}")
 else:
-    print("Không tính được FPS.")
+    print("Không tính được FPS")
