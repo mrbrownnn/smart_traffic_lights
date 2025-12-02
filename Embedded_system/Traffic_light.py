@@ -14,8 +14,8 @@ LED1_GREEN, LED1_YELLOW, LED1_RED = 23, 12, 16
 LED2_GREEN, LED2_YELLOW, LED2_RED = 26, 27, 22
 
 # Trạng thái cho API
-traffic_status_c1 = {"green_time": 5, "yellow_time": 2, "red_time": 7, "vehicles": None}
-traffic_status_c2 = {"green_time": 5, "yellow_time": 2, "red_time": 7, "vehicles": None}
+traffic_status_c1 = {"green_time": 17, "yellow_time": 3, "red_time": 20, "vehicles": None}
+traffic_status_c2 = {"green_time": 17, "yellow_time": 3, "red_time": 20, "vehicles": None}
 
 # Biến số xe từ MQTT
 vehicles_c1 = None
@@ -105,13 +105,13 @@ def adjust_times_based_on_vehicles(c1_green, c1_red, c2_green, c2_red, v1, v2, t
 def run_traffic_cycle():
     global vehicles_c1, vehicles_c2
 
-    c1_green, c1_yellow, c1_red = 5, 2, 7
-    c2_green, c2_yellow, c2_red = 5, 2, 7
+    c1_green, c1_yellow, c1_red = 17, 3, 20
+    c2_green, c2_yellow, c2_red = 17, 3, 20
 
     while True:
         # reset mặc định
-        c1_green, c1_yellow, c1_red = 5, 2, 7
-        c2_green, c2_yellow, c2_red = 5, 2, 7
+        c1_green, c1_yellow, c1_red = 17, 3, 20
+        c2_green, c2_yellow, c2_red = 17, 3, 20
 
         with status_lock:
             if not manual_reset_active:
