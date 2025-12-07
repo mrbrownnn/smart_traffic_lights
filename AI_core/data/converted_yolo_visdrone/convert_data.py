@@ -35,7 +35,7 @@ def prepare_output_dirs():
         if dir_path.exists():
             shutil.rmtree(dir_path)
         dir_path.mkdir(parents=True, exist_ok=True)
-    print(f"✅ Created output directories in: {OUTPUT_DIR}")
+    print(f"Created output directories in: {OUTPUT_DIR}")
 
 
 def convert_annotation(annotation_path: Path, image_dir: Path, label_dir: Path, stats: dict):
@@ -109,13 +109,13 @@ def convert_annotation(annotation_path: Path, image_dir: Path, label_dir: Path, 
 
 def main():
     if not ANNOTATIONS_DIR.exists() or not IMAGES_DIR.exists():
-        print("❌ ERROR: Input directories not found!")
+        print("ERROR: Input directories not found!")
         return
 
     prepare_output_dirs()
     ann_files = sorted(ANNOTATIONS_DIR.glob("*.txt"))
     if not ann_files:
-        print("❌ No annotation files found!")
+        print("No annotation files found!")
         return
 
     print(f"📁 Found {len(ann_files)} annotation files")
@@ -149,7 +149,7 @@ def main():
     print(f"Total boxes converted:     {stats['converted_boxes']}")
     print(f"Files with no valid boxes: {stats['empty_files']}")
 
-    print("\n📊 FILTERING STATISTICS:")
+    print("\nFILTERING STATISTICS:")
     print(f"  Ignored boxes (score=0):  {stats['ignored_boxes']}")
     print(f"  Invalid dimensions:        {stats['invalid_dimensions']}")
     print(f"  Out of bounds:             {stats['out_of_bounds']}")
@@ -162,7 +162,7 @@ def main():
 
     for cat_id in sorted(stats['all_categories']):
         name = visdrone_classes.get(cat_id, f"unknown_{cat_id}")
-        kept = "✅ KEPT" if cat_id in VALID_IDS else "✗ FILTERED"
+        kept = "KEPT" if cat_id in VALID_IDS else "✗ FILTERED"
         print(f"  {cat_id:2d} ({name:18s}): {stats['all_categories'][cat_id]:6d} [{kept}]")
 
     print("\n ISSUES:")
