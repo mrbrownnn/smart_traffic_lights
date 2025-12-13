@@ -8,13 +8,13 @@ import { AlertCircle, Info } from 'lucide-react';
 interface ControlPageProps {
   trafficLights: TrafficLight[];
   vehicleCounts?: {c1: number | null, c2: number | null};
-  onRefresh?: () => void;
+  onUpdate?: () => void;
 }
 
 export default function ControlPage({ 
   trafficLights, 
   vehicleCounts,
-  onRefresh
+  onUpdate
 }: ControlPageProps) {
   
   if (trafficLights.length === 0) {
@@ -82,7 +82,7 @@ export default function ControlPage({
             <TrafficLightControl 
               trafficLight={light} 
               vehicleCount={vehicleCounts ? (index === 0 ? vehicleCounts.c1 : vehicleCounts.c2) : null}
-              onUpdate={onRefresh}
+              onUpdate={onUpdate}
             />
           </div>
         ))}

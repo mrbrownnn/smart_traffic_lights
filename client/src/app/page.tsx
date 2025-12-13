@@ -21,7 +21,7 @@ const initialCameras: CameraData[] = [
     fps: 30, 
     brightness: 50, 
     contrast: 50, 
-    streamUrl: 'https://sniffy-dramatizable-jagger.ngrok-free.dev/camera' 
+    streamUrl: 'https://congregative-pathognomonically-madelene.ngrok-free.dev/camera' 
   },
   { 
     id: 2, 
@@ -32,7 +32,7 @@ const initialCameras: CameraData[] = [
     fps: 30, 
     brightness: 50, 
     contrast: 50, 
-    streamUrl: 'https://sniffy-dramatizable-jagger.ngrok-free.dev/camera' 
+    streamUrl: 'https://congregative-pathognomonically-madelene.ngrok-free.dev/camera' 
   },
 ];
 
@@ -58,6 +58,7 @@ export default function Home() {
   const fetchTrafficLightStatus = async () => {
     try {
       const status = await trafficLightApi.getStatus();
+      console.log('API Response:', status); // Debug log
       
       // Lưu vehicle counts
       setVehicleCounts({
@@ -85,6 +86,7 @@ export default function Home() {
         },
       ];
       
+      console.log('Updated Traffic Lights:', updatedLights); // Debug log
       setTrafficLights(updatedLights);
     } catch (error) {
       console.error('Error fetching traffic light status:', error);
@@ -178,7 +180,6 @@ export default function Home() {
             trafficLights={trafficLights}
             vehicleStats={mockVehicleStats}
             vehicleCounts={vehicleCounts}
-            onRefresh={fetchTrafficLightStatus}
           />
         )}
         {activeTab === 'monitor' && <MonitorPage cameras={cameras} />}
@@ -186,7 +187,7 @@ export default function Home() {
           <ControlPage
             trafficLights={trafficLights}
             vehicleCounts={vehicleCounts}
-            onRefresh={fetchTrafficLightStatus}
+            onUpdate={fetchTrafficLightStatus}
           />
         )}
         {activeTab === 'settings' && (
