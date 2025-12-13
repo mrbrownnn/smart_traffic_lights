@@ -64,11 +64,11 @@ export const LiveFeedViewer: React.FC<LiveFeedViewerProps> = ({ camera }) => {
             </div>
             <div className="col">
               <small className="text-muted d-block">Resolution</small>
-              <div>{camera.resolution}</div>
+              <div>416x416</div>
             </div>
             <div className="col">
               <small className="text-muted d-block">Frame Rate</small>
-              <div>{camera.fps} FPS</div>
+              <div>5 FPS</div>
             </div>
           </div>
         </div>
