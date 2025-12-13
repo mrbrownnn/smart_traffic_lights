@@ -6,29 +6,39 @@ import { StatCard } from '@/components/StatCard';
 import { VehicleChart } from '@/components/VehicleChart';
 import { CameraStatusList } from '@/components/CameraStatusList';
 import { TrafficLightStatusList } from '@/components/TrafficLightStatusList';
+import { VehicleCountDisplay } from '@/components/VehicleCountDisplay';
 import { CameraData, TrafficLight, VehicleStats } from '@/types/type';
 
 interface OverviewPageProps {
   cameras: CameraData[];
   trafficLights: TrafficLight[];
   vehicleStats: VehicleStats[];
+  vehicleCounts?: {c1: number | null, c2: number | null};
 }
 
 export default function OverviewPage({ 
   cameras, 
   trafficLights, 
-  vehicleStats 
+  vehicleStats,
+  vehicleCounts
 }: OverviewPageProps) {
   const activeCameras = cameras.filter(c => c.status === 'active').length;
-  const activeTrafficLights = trafficLights.filter(t => t.status === 'active').length;
-  const todayVehicles = vehicleStats[vehicleStats.length - 1]?.count || 0;
+  const totalVehicles = (vehicleCounts?.c1 || 0) + (vehicleCounts?.c2 || 0);
 
   return (
     <>
+      {/* Vehicle Count Display - Real-time từ AI */}
+      {vehicleCounts && (
+        <VehicleCountDisplay 
+          cluster1Count={vehicleCounts.c1}
+          cluster2Count={vehicleCounts.c2}
+        />
+      )}
+
       <div className="row g-3 mb-4">
         <div className="col-md-4">
           <StatCard
-            title="Active Cameras"
+            title="Cameras hoạt động"
             value={activeCameras.toString()}
             total={cameras.length.toString()}
             icon={<Camera size={32} className="text-primary" />}
@@ -38,21 +48,21 @@ export default function OverviewPage({
         </div>
         <div className="col-md-4">
           <StatCard
-            title="Active Traffic Lights"
-            value={activeTrafficLights.toString()}
+            title="Cụm đèn giao thông"
+            value={trafficLights.length.toString()}
             total={trafficLights.length.toString()}
             icon={<TrafficCone size={32} className="text-success" />}
             color="success"
-            progress={(activeTrafficLights / trafficLights.length) * 100}
+            progress={100}
           />
         </div>
         <div className="col-md-4">
           <StatCard
-            title="Vehicles Today"
-            value={todayVehicles.toLocaleString()}
+            title="Tổng xe hiện tại"
+            value={totalVehicles.toString()}
             icon={<Car size={32} className="text-warning" />}
             color="warning"
-            subtitle="Updated in real-time"
+            subtitle="Cập nhật từ AI mỗi 10s"
           />
         </div>
       </div>
