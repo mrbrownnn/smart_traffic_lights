@@ -1,0 +1,10 @@
+names:
+- car
+- bicycle
+- bus
+- truck
+- motorbike
+nc: 5
+path: E:\multi_2\yolo_mtid_motor
+train: images/train
+val: images/val

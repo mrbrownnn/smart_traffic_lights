@@ -1,0 +1,25 @@
+description: Ultralytics YOLO11n model trained on /content/drive/MyDrive/yolo_mtid_motor/data.yaml
+author: Ultralytics
+date: '2025-11-20T13:29:51.043879'
+version: 8.3.213
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 416
+- 416
+names:
+  0: car
+  1: bicycle
+  2: bus
+  3: truck
+  4: motorbike
+args:
+  batch: 1
+  fraction: 1.0
+  half: false
+  int8: true
+  nms: false
+channels: 3
