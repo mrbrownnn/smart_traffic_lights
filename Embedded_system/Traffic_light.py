@@ -42,7 +42,7 @@ def setup_gpio():
         GPIO.output(pin, 0)
 
 # ----------------------------------------------------
-# MQTT HANDLER — thay thế hoàn toàn input_vehicles()
+# MQTT HANDLER 
 # ----------------------------------------------------
 def on_mqtt_message(client, userdata, msg):
     global vehicles_c1, vehicles_c2
@@ -76,7 +76,7 @@ def input_vehicles():
 # ----------------------------------------------------
 # Điều chỉnh thời gian dựa trên số xe
 # ----------------------------------------------------
-def adjust_times_based_on_vehicles(c1_green, c1_red, c2_green, c2_red, v1, v2, threshold=10):
+def adjust_times_based_on_vehicles(c1_green, c1_red, c2_green, c2_red, v1, v2, threshold=7):
     if v1 is None or v2 is None:
         return c1_green, c1_red, c2_green, c2_red
     

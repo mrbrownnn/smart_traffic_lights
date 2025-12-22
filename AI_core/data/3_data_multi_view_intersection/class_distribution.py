@@ -110,7 +110,7 @@ if __name__ == "__main__":
     
     # Overall statistics
     print("\n" + "=" * 70)
-    print("📊 OVERALL STATISTICS")
+    print("OVERALL STATISTICS")
     print("=" * 70)
     
     total_annotations = sum(total_stats.values())
@@ -137,5 +137,5 @@ if __name__ == "__main__":
         print(f"\nAverage annotations per file: {avg_annotations:.2f}")
     
     print("\n" + "=" * 70)
-    print("✅ ANALYSIS COMPLETE!")
+    print("ANALYSIS COMPLETE!")
     print("=" * 70)

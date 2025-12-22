@@ -12,17 +12,17 @@ import os
 
 
 # -----------------------------
-# Bước 1: Cấu hình
+# Cấu hình
 # -----------------------------
-CONF_THRESHOLD = 0.08
-IOU_THRESHOLD = 0.45
-DETECT_INTERVAL = 10   # detect mỗi 10 giây
+CONF_THRESHOLD = 0.08  
+IOU_THRESHOLD = 0.5
+DETECT_INTERVAL = 5   # detect mỗi 5 giây
 CLASS_NAMES = ["car", "bicycle", "bus", "truck", "motorbike"]
 # Tạo thư mục lưu ảnh detect
 os.makedirs("detect_frames", exist_ok=True)
 
 # -----------------------------
-# Bước 2: NMS
+# NMS
 # -----------------------------
 def nms(boxes, scores, iou_threshold):
     if len(boxes) == 0:
@@ -58,9 +58,14 @@ def nms(boxes, scores, iou_threshold):
 
 
 # -----------------------------
-# Bước 3: Load model
+# Load model
 # -----------------------------
-interpreter = Interpreter(model_path="best_float16.tflite")
+MODEL_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "best_float16.tflite"
+)
+
+interpreter = Interpreter(model_path=MODEL_PATH)
 interpreter.allocate_tensors()
 
 input_details = interpreter.get_input_details()
@@ -74,9 +79,13 @@ print("Model output:", output_details[0]["shape"])
 
 
 # -----------------------------
-# Bước 4: Load video
+# Load video
 # -----------------------------
-cap = cv2.VideoCapture("VideoGiaoThong.mp4")
+VIDEO_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "VideoGiaoThong2.mp4"
+)
+cap = cv2.VideoCapture(VIDEO_PATH)
 
 if not cap.isOpened():
     print("Không mở được video!")
@@ -89,7 +98,7 @@ detect_count = 0   # đếm lần detect để lưu ảnh
 
 
 # -----------------------------
-# Bước 5: Loop xử lý video
+# Loop xử lý video
 # -----------------------------
 while True:
     ret, frame = cap.read()
@@ -127,11 +136,11 @@ while True:
     interpreter.invoke()
 
     output = interpreter.get_tensor(output_details[0]['index'])
-    output = np.squeeze(output)  # [9, 8400]
+    output = np.squeeze(output)  # [8400, 9]
 
-    # boost tín hiệu
-    output[4,:] *= 50
-    output[5:,:] *= 50
+    # boost tín hiệu (BỎ)
+    # output[4,:] *= 50
+    # output[5:,:] *= 50
 
     output = output.T  # [8400, 9]
 
@@ -139,17 +148,17 @@ while True:
 
 
     # -----------------------------
-    # Bước 7: Decode output
+    # Decode output
     # -----------------------------
     for pred in output:
-        x, y, w_box, h_box, obj_conf = pred[:5]
-        class_prob = pred[5:]
-        conf = obj_conf * np.max(class_prob)
+        x, y, w_box, h_box = pred[:4]
+        class_scores = pred[4:]
+
+        cls_id = int(np.argmax(class_scores))
+        conf = class_scores[cls_id]
 
         if conf < CONF_THRESHOLD:
             continue
-
-        cls_id = np.argmax(class_prob)
 
         x1 = (x - w_box/2) * orig_w
         y1 = (y - h_box/2) * orig_h
@@ -165,7 +174,7 @@ while True:
         continue
 
     # -----------------------------
-    # Bước 8: NMS
+    # NMS
     # -----------------------------
     boxes_all = np.array(boxes_all)
     scores_all = np.array(scores_all)
@@ -175,7 +184,7 @@ while True:
 
 
     # -----------------------------
-    # Bước 9: Đếm xe trái / phải
+    # Đếm xe trái / phải
     # -----------------------------
     left = 0
     right = 0
@@ -202,7 +211,7 @@ while True:
 
 
     # -----------------------------
-    # Bước 10: Lưu ảnh detect
+    # Lưu ảnh detect
     # -----------------------------
     save_path = f"detect_frames/frame_{detect_count}.jpg"
     img.save(save_path)
@@ -210,7 +219,7 @@ while True:
 
 
     # -----------------------------
-    # Bước 11: Gửi MQTT
+    # Gửi MQTT
     # -----------------------------
     client = mqtt.Client()
     client.connect("localhost", 1883, 60)
