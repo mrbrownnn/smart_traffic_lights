@@ -27,10 +27,11 @@ Dataset → Model Customization → Training → Knowledge Distillation
 
 ### 🚗 Real-time Vehicle Detection
 - **YOLOv11n-Lite (customized)** object detection model
-- Input resolution: **480 × 480**
+- Input resolution: **416 × 416**
 - Optimized trade-off between **accuracy, latency, and CPU load** on Raspberry Pi 4
 - Supports multiple vehicle classes:
   - Car
+  - Bicycle
   - Motorbike
   - Bus
   - Truck
@@ -99,7 +100,7 @@ Dataset → Model Customization → Training → Knowledge Distillation
 
 ### Software
 - Python  
-- YOLOv11n (baseline & customized)  
+- YOLOv11n (customized)  
 - TensorFlow Lite (INT8)  
 - OpenCV  
 - MQTT  
