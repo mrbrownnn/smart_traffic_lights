@@ -62,14 +62,6 @@ export const LiveFeedViewer: React.FC<LiveFeedViewerProps> = ({ camera }) => {
               <small className="text-muted d-block">Location</small>
               <div>{camera.location}</div>
             </div>
-            <div className="col">
-              <small className="text-muted d-block">Resolution</small>
-              <div>416x416</div>
-            </div>
-            <div className="col">
-              <small className="text-muted d-block">Frame Rate</small>
-              <div>5 FPS</div>
-            </div>
           </div>
         </div>
       </div>
