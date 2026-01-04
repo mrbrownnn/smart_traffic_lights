@@ -160,14 +160,14 @@ export const TrafficLightControl: React.FC<TrafficLightControlProps> = ({
                 onClick={handleReset}
                 disabled={adjusting}
               >
-                🔄 Reset về ban đầu & Tắt AI
+                🔄 Reset về ban đầu & Tắt chế độ điều chỉnh đèn tự động
               </button>
               <button
                 className="btn btn-success btn-lg"
                 onClick={handleEnableAI}
                 disabled={adjusting}
               >
-                🤖 Bật chế độ AI tự động
+                🤖 Bật chế độ điều chỉnh đèn tự động
               </button>
             </>
           )}
