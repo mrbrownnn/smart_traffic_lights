@@ -111,7 +111,7 @@ while True:
 
     now = time.time()
 
-    # Chỉ detect mỗi 10s
+    # Chỉ detect mỗi 5s
     if now - last_detect_time < DETECT_INTERVAL:
         continue
 
@@ -130,22 +130,16 @@ while True:
     img_np = np.expand_dims(img_np, 0)
 
     # -----------------------------
-    # Bước 6: Inference
+    # Inference
     # -----------------------------
     interpreter.set_tensor(input_details[0]['index'], img_np)
     interpreter.invoke()
 
     output = interpreter.get_tensor(output_details[0]['index'])
     output = np.squeeze(output)  # [8400, 9]
-
-    # boost tín hiệu (BỎ)
-    # output[4,:] *= 50
-    # output[5:,:] *= 50
-
     output = output.T  # [8400, 9]
 
     boxes_all, scores_all, class_all = [], [], []
-
 
     # -----------------------------
     # Decode output
@@ -182,7 +176,6 @@ while True:
 
     keep = nms(boxes_all, scores_all, IOU_THRESHOLD)
 
-
     # -----------------------------
     # Đếm xe trái / phải
     # -----------------------------
@@ -209,14 +202,12 @@ while True:
 
     print(f"LEFT = {left}  |  RIGHT = {right}")
 
-
     # -----------------------------
     # Lưu ảnh detect
     # -----------------------------
     save_path = f"detect_frames/frame_{detect_count}.jpg"
     img.save(save_path)
     print("Đã lưu ảnh detect:", save_path)
-
 
     # -----------------------------
     # Gửi MQTT
