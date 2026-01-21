@@ -40,9 +40,12 @@ Dataset → Model Customization → Training → Knowledge Distillation
 
 ### ⚙️ Model Optimization for Edge AI
 - Lightweight backbone options:
-  - **GhostConv**
-  - **Depthwise Separable Convolution (DWConv)**
-- **INT8 Quantization** using **TensorFlow Lite**
+  - **Custom Architecture with GhostConv & C3k2 Block**
+  - **Knowledge distillation**
+  - **Finetune with Multi-view-traffic-Intersection**
+  - **Quantization**
+  - 
+- **INT8 Quantization** using **TensorFlow Lite Runtime**
 - CPU-friendly inference with **minimal accuracy degradation**
 - Designed for stable real-time performance on Raspberry Pi 4
 
@@ -99,11 +102,13 @@ Dataset → Model Customization → Training → Knowledge Distillation
 - GPIO-controlled traffic lights (LEDs)
 
 ### Software
-- Python  
+- Python (for data cleaning & Embeded Systems)
+- Jupyter Notebook (for architecture,training and finetune model)
 - YOLOv11n (customized)  
-- TensorFlow Lite (INT8)  
+- TensorFlow Lite (INT8, FP16)  
 - OpenCV  
 - MQTT  
+- Nextjs (for web & dardboard)
 - Firebase (optional)
 
 ---
@@ -115,7 +120,7 @@ This repository is provided **for academic and demonstration purposes only**.
 Access to and reuse of the source code (including training scripts, optimization pipelines, and deployment code) **require explicit permission from the author**.
 
 📩 **For any requests to use the source code, please contact:**  
-**mrbrownn** (repository owner)
+**Thanh Pham Van** (repository owner)
 
 Unauthorized commercial use, redistribution, or modification of this project is **not permitted** without prior consent.
 
