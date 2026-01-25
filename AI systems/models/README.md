@@ -2,18 +2,18 @@
 
 This directory contains trained YOLOv11 models optimized for traffic detection using Knowledge Distillation (KD) and model compression techniques.
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 models/
 ├── yolov11n_kd_customize/          # YOLOv11n with Knowledge Distillation
-├── yolo11n_customize_quantize+KD/  # YOLOv11n with Quantization + KD
+├── yolo11n_customize_quantize+KD/  # YOLOv11n with Quantization + KD + finetune
 ├── original_model_v11n.ipynb       # Training notebook for baseline model
 ├── v11_ghostconv_KD_quantization.ipynb  # Training notebook for optimized model
 └── .gitignore
 ```
 
-## 🎯 Model Variants
+## Model Variants
 
 ### 1. YOLOv11n with Knowledge Distillation (`yolov11n_kd_customize/`)
 
@@ -24,12 +24,12 @@ models/
 - **Training Method**: Knowledge Distillation
 - **Epochs**: 40
 - **Batch Size**: 16
-- **Image Size**: 640x640
+- **Image Size**: 416 x 416
 - **Dataset**: YOLO MTID Motor dataset
 
 **Training Configuration**:
 - Optimizer: Auto
-- Learning Rate: 0.01 (initial), 0.01 (final)
+- Learning Rate: 0.001 (initial), 0.001 (final)
 - Augmentations: HSV, translation, scaling, flipping, RandAugment
 - Loss Weights: Box=7.5, Cls=0.5, DFL=1.5
 
@@ -114,6 +114,28 @@ for result in results:
 
 ## 📈 Model Performance
 
+### Final Results Comparison
+
+| Model | Epochs | Precision | Recall | mAP@50 | mAP@50-95 | Box Loss | Cls Loss | DFL Loss |
+|-------|--------|-----------|--------|---------|-----------|----------|----------|----------|
+| **YOLOv11n Quantize+KD** | 50 | 88.16% | **81.20%** | 88.12% | 63.78% | 0.997 | 0.594 | 1.007 |
+
+> **Note**: Results are from the final training epoch. The KD model shows superior performance across most metrics, while the Quantized+KD model offers better efficiency for edge deployment.
+
+### Detailed Performance Metrics
+
+#### YOLOv11n Quantize+KD (Epoch 50/50)
+- **Precision (B)**: 88.16%
+- **Recall (B)**: 81.20%
+- **mAP@50**: 88.12%
+- **mAP@50-95**: 63.78%
+- **Validation Losses**:
+  - Box Loss: 0.997
+  - Classification Loss: 0.594
+  - DFL Loss: 1.007
+
+### Performance Visualizations
+
 Both models include comprehensive performance metrics:
 
 - **Precision-Recall Curves** (`BoxPR_curve.png`)
@@ -134,14 +156,11 @@ Both models include comprehensive performance metrics:
 2. **GhostConv Blocks**
    - Reduces computational cost
    - Maintains accuracy with fewer parameters
+   - Reduces C3k2 Block from 2 to 1
 
 3. **Quantization**
    - Reduces model size
    - Faster inference on edge devices
-
-4. **Pruning**
-   - Removes redundant weights
-   - Optimizes model architecture
 
 ---
 
